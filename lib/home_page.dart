@@ -1,12 +1,23 @@
-import 'dart:async'; // لاستيراد Timer
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'login_page.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:marquee/marquee.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // لاستيراد SharedPreferences
-import 'gold_price_service.dart'; // تأكد من استيراد ملف الخدمة
+import 'package:shared_preferences/shared_preferences.dart';
+import 'gold_price_service.dart';
+import 'more_products_page.dart';
+import 'package:provider/provider.dart';
+import 'order.dart';
+import 'cart_page.dart';
+import 'payment_page.dart';
+import 'product_details_page.dart';
+import 'cart_model.dart';
+import 'twilio_service.dart';
+import 'add_product_page.dart';
+import 'EditProductPage.dart';
+import 'product_model.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class HomePage extends StatefulWidget {
   @override
@@ -14,30 +25,26 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _pressCount = 0;
   ScrollController _scrollController = ScrollController();
   late Timer _timer;
-  List<String> _productImages = [];
-  Map<String, double> _goldPrices = {}; // تأكد من تعريف هذه المتغيرات
+  List<Product> _carouselProducts = [];
+  Map<String, double> _goldPrices = {};
+  String _goldPricesDate = '';
 
   @override
   void initState() {
     super.initState();
-    _loadPressCount(); // تحميل العداد عند بدء الصفحة
-
-    // تحميل الصور وأسعار الذهب وحفظها مؤقتًا
-    _loadProductImages();
+    _loadCarouselProducts();
     _loadGoldPrices();
 
-    // بدء التحريك التلقائي للصور بشكل مستمر دون توقف
-    _timer = Timer.periodic(Duration(milliseconds: 100), (Timer timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (Timer timer) {
       if (_scrollController.hasClients) {
         double maxScroll = _scrollController.position.maxScrollExtent;
         double currentScroll = _scrollController.offset;
-        double delta = 6.0; // مقدار التحريك في كل مرة
+        double delta = 2.0;
 
         if (currentScroll + delta >= maxScroll) {
-          _scrollController.jumpTo(0.0); // العودة للبداية فور الوصول للنهاية
+          _scrollController.jumpTo(0.0);
         } else {
           _scrollController.jumpTo(currentScroll + delta);
         }
@@ -47,210 +54,193 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    _timer.cancel(); // إلغاء المؤقت عند إغلاق الصفحة
+    _timer.cancel();
     _scrollController.dispose();
-    _clearSharedPreferences(); // مسح البيانات من SharedPreferences عند غلق التطبيق
     super.dispose();
   }
 
-  // تحميل الصور من Firestore أو من SharedPreferences
-  Future<void> _loadProductImages() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+  Future<void> _loadCarouselProducts() async {
+    QuerySnapshot snapshot =
+        await FirebaseFirestore.instance.collection('products').get();
+    List<Product> products =
+        snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
 
-    // مسح الكاش القديم إذا كان موجودًا
-    prefs.remove('productImages');
-
-    // تحميل الصور الجديدة من Firestore
-    QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('products').get();
-    List<String> imageUrls = snapshot.docs.map((doc) => doc['image'] as String).toList();
-
-    // حفظ الصور الجديدة في SharedPreferences
-    await prefs.setStringList('productImages', imageUrls);
-
-    // تحديث واجهة المستخدم
     setState(() {
-      _productImages = imageUrls;
+      _carouselProducts = products;
     });
   }
 
-  // تحميل أسعار الذهب من API أو من SharedPreferences
   Future<void> _loadGoldPrices() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? cachedPrices = prefs.getString('goldPrices');
+    try {
+      DocumentSnapshot<Map<String, dynamic>> doc = await FirebaseFirestore
+          .instance
+          .collection('gold_prices')
+          .doc('current_prices')
+          .get();
 
-    if (cachedPrices != null) {
-      // إذا كانت الأسعار موجودة في SharedPreferences
-      Map<String, double> goldPrices = Map<String, double>.fromEntries(
-        cachedPrices.split('|').map((entry) {
-          var parts = entry.split(':');
-          return MapEntry(parts[0], double.parse(parts[1]));
-        }),
-      );
-      setState(() {
-        _goldPrices = goldPrices;
-      });
-    } else {
-      // إذا لم تكن الأسعار موجودة في SharedPreferences، جلبها من خدمة GoldPriceService
-      Map<String, double> goldPrices = await GoldPriceService.fetchGoldPrices();
-
-      // حفظ الأسعار في SharedPreferences
-      String pricesString = goldPrices.entries.map((e) => '${e.key}:${e.value}').join('|');
-      await prefs.setString('goldPrices', pricesString);
-
-      setState(() {
-        _goldPrices = goldPrices;
-      });
+      if (doc.exists && doc.data() != null) {
+        Map<String, dynamic> data = doc.data()!;
+        setState(() {
+          _goldPrices = {
+            'عيار 24': (data['GD24'] as num).toDouble(),
+            'عيار 21': (data['GD21'] as num).toDouble(),
+            'عيار 18': (data['GD18'] as num).toDouble(),
+            'عيار 14': (data['GD14'] as num).toDouble(),
+          };
+          _goldPricesDate = data['date'] as String;
+        });
+      } else {
+        print("Document 'current_prices' does not exist in 'gold_prices' collection.");
+      }
+    } catch (e) {
+      print("Error loading gold prices: $e");
     }
   }
 
-  // دالة لزيادة العداد وعرض صفحة تسجيل الدخول عند الوصول إلى 7 ضغطات
-  void _incrementCounter() async {
-    setState(() {
-      _pressCount++;
-    });
-
-    // حفظ قيمة العداد باستخدام SharedPreferences
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setInt('pressCount', _pressCount);
-
-    if (_pressCount >= 7) {
-      // إعادة تعيين العداد إلى الصفر بعد فتح صفحة تسجيل الدخول
-      prefs.setInt('pressCount', 0);
-      _pressCount = 0;
-
-      // الانتقال إلى صفحة تسجيل الدخول
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
-      );
-    }
-  }
-
-  // تحميل العداد من SharedPreferences عند بداية الصفحة
-  _loadPressCount() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _pressCount = prefs.getInt('pressCount') ?? 0;
-    });
-  }
-
-  // دالة لإغلاق التطبيق
   void _closeApp() {
-    SystemNavigator.pop();
-  }
-
-  // دالة لمسح SharedPreferences
-  Future<void> _clearSharedPreferences() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); // مسح جميع البيانات المخزنة
+    if (kIsWeb) {
+      Navigator.of(context).maybePop();
+    } else {
+      SystemNavigator.pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('متجر مجوهرات ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: Color(0xFF00008B)
-        )),
-        backgroundColor:Color(0xFF50C878),
+        title: const Text('متجر مجوهرات ',
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 28,
+                color: Colors.white)),
+        backgroundColor: const Color(0xFF800080),
         centerTitle: true,
         elevation: 0,
       ),
-      body: GestureDetector(
-        onTap: _incrementCounter,
-        child: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/bk.png'), // الصورة التي تم تحميلها
-              fit: BoxFit.cover, // ملء الشاشة بالصورة
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/bk.png'),
+            fit: BoxFit.cover,
           ),
-          child: Column(
-            children: [
-              SizedBox(height: 25), // المسافة بين العنوان وشريط عرض الصور المتحركة
-
-              // شريط عرض الصور المتحركة في أعلى الصفحة
-              _productImages.isNotEmpty
-                  ? Container(
-                height: 100,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _productImages.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: CachedNetworkImage(
-                        imageUrl: _productImages[index],
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const CircularProgressIndicator(),
-                        errorWidget: (context, url, error) => const Icon(Icons.error),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            _carouselProducts.isNotEmpty
+                ? SizedBox(
+                    height: 180,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _carouselProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = _carouselProducts[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/productDetails',
+                                arguments: {
+                                  'name': product.name,
+                                  'price': product.price,
+                                  'image': product.imageUrl,
+                                  'type': product.type,
+                                  'weight': product.weight,
+                                },
+                              );
+                            },
+                            child: CachedNetworkImage(
+                              imageUrl: product.imageUrl,
+                              width: 150,
+                              height: 150,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) =>
+                                  const CircularProgressIndicator(),
+                              errorWidget: (context, url, error) =>
+                                  const Icon(Icons.error),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                : const CircularProgressIndicator(),
+            const Spacer(),
+            _buildButton(context, "المنتجات", Icons.shop, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MoreProductsPage()),
+              );
+            }),
+            const SizedBox(height: 18),
+            _buildButton(context, "السلة", Icons.shopping_cart, () {
+              Navigator.pushNamed(context, "/cart");
+            }),
+            const SizedBox(height: 18),
+            _buildButton(context, "الدفع", Icons.payment, () {
+              Navigator.pushNamed(context, "/payment");
+            }),
+            const SizedBox(height: 18),
+            _buildButton(context, "من نحن", Icons.info, () {
+              Navigator.pushNamed(context, "/aboutus");
+            }),
+            const SizedBox(height: 18),
+            // هنا تم إضافة الشرط لإخفاء الزر على الويب
+            if (!kIsWeb)
+              _buildButton(context, "إغلاق التطبيق", Icons.exit_to_app, () {
+                _closeApp();
+              }, isCloseButton: true),
+            const Spacer(),
+            _goldPrices.isNotEmpty
+                ? Container(
+                    color: const Color(0xFFF5F5DC),
+                    height: 50,
+                    child: Directionality(
+                      textDirection: TextDirection.rtl,
+                      child: Marquee(
+                        text: 'التاريخ: $_goldPricesDate' +
+                            '                   ' +
+                            _goldPrices.entries.map((entry) {
+                              return '${entry.key}: ${entry.value.toStringAsFixed(2)} دينار';
+                            }).join('                   '),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          color: Color(0xFF800080),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        scrollAxis: Axis.horizontal,
+                        blankSpace: 20.0,
+                        velocity: 50.0,
+                        pauseAfterRound: const Duration(seconds: 0),
                       ),
-                    );
-                  },
-                ),
-              )
-                  : const CircularProgressIndicator(), // إذا كانت الصور غير محملة بعد
-
-              SizedBox(height: 135), // المسافة بين التاب والأزرار
-
-              _buildButton(context, "المنتجات", Icons.shop, "/products"),
-              SizedBox(height: 18), // المسافة بين الأزرار
-              _buildButton(context, "السلة", Icons.shopping_cart, "/cart"),
-              SizedBox(height: 18), // المسافة بين الأزرار
-              _buildButton(context, "الدفع", Icons.payment, "/payment"),
-              SizedBox(height: 18), // المسافة بين الأزرار
-              _buildButton(context, "من نحن", Icons.info, "/aboutus"),
-              SizedBox(height: 18), // المسافة بين الأزرار
-              _buildButton(context, "إغلاق التطبيق", Icons.exit_to_app, "/exit", isCloseButton: true),
-
-              SizedBox(height: 27), // إضافة مسافة بين الأزرار وشريط أسعار الذهب
-
-              // شريط عرض أسعار الذهب في أسفل الصفحة
-              _goldPrices.isNotEmpty
-                  ? Container(
-                color: Color(0xFFF5F5DC),
-                height: 50,
-                child: Marquee(
-                  text: _goldPrices.entries.map((entry) {
-                    return '${entry.key}: ${entry.value.toStringAsFixed(2)} د.أ';
-                  }).join('   |   '),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    color: Color(0xFF4CAF50),
-                    fontWeight: FontWeight.bold,
-                  ),
-                  scrollAxis: Axis.horizontal,
-                  blankSpace: 20.0,
-                  velocity: 100.0,
-                  pauseAfterRound: Duration(seconds: 0),
-                ),
-              )
-                  : const CircularProgressIndicator(), // إذا كانت الأسعار غير محملة بعد
-            ],
-          ),
+                    ),
+                  )
+                : const CircularProgressIndicator(),
+          ],
         ),
       ),
     );
   }
 
-  // دالة لإنشاء زر
-  Widget _buildButton(BuildContext context, String label, IconData icon, String route, {bool isCloseButton = false}) {
+  Widget _buildButton(BuildContext context, String label, IconData icon,
+      VoidCallback onPressed,
+      {bool isCloseButton = false}) {
     return ElevatedButton.icon(
-      onPressed: () {
-        if (isCloseButton) {
-          _closeApp();
-        } else {
-          Navigator.pushNamed(context, route);
-        }
-      },
-      icon: Icon(icon, size: 25),
-      label: Text(label, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF00008B))), // تغيير لون النص هنا
+      onPressed: onPressed,
+      icon: Icon(icon, size: 25, color: Colors.white),
+      label: Text(label,
+          style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white)),
       style: ElevatedButton.styleFrom(
-        backgroundColor: Color(0xFF50C878), // اللون الأساسي
-        foregroundColor: Colors.white, // لون النص (غير مستخدم هنا لأنه سيتم تحديده في TextStyle)
-        minimumSize: Size(200, 50), // تحديد حجم الزر
+        backgroundColor: const Color(0xFF800080),
+        foregroundColor: Colors.white,
+        minimumSize: const Size(200, 50),
       ),
     );
   }

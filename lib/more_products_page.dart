@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'filtered_products_page.dart';  // تأكد من استيراد الصفحة الثانية
-import 'BackgroundWidget.dart';  // تأكد من استيراد الـ BackgroundWidget
-import 'home_page.dart';  // استيراد الصفحة الرئيسية
-import 'cart_page.dart';  // تأكد من استيراد صفحة السلة
+import 'filtered_products_page.dart';
+import 'BackgroundWidget.dart';
+import 'home_page.dart';
+import 'cart_page.dart';
 
 class MoreProductsPage extends StatelessWidget {
-  // دالة للانتقال إلى صفحة المنتجات المفلترة بناءً على النوع المختار
   void _openFilteredProductsPage(BuildContext context, String filterType) {
     Navigator.push(
       context,
@@ -15,36 +14,38 @@ class MoreProductsPage extends StatelessWidget {
     );
   }
 
-  // دالة للانتقال إلى الصفحة الرئيسية
   void _goToHomePage(BuildContext context) {
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => HomePage()),  // الصفحة الرئيسية
-          (Route<dynamic> route) => false,  // إزالة جميع الصفحات السابقة
+      MaterialPageRoute(builder: (context) => HomePage()),
+      (Route<dynamic> route) => false,
     );
   }
 
-  // دالة للانتقال إلى صفحة السلة
   void _goToCartPage(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => CartPage()),  // انتقل إلى صفحة السلة
+      MaterialPageRoute(builder: (context) => CartPage()),
     );
   }
 
-  // دالة لعرض الأزرار
   Widget _buildFilterButton(BuildContext context, String label) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),  // زيادة المسافة بين الأزرار
-      child: ElevatedButton(
-        onPressed: () => _openFilteredProductsPage(context, label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green,  // الإبقاء على اللون الأخضر للخلفية
-          foregroundColor: Color(0xFF6A5096),  // تغيير لون النص إلى اللون المطلوب
-          padding: EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0), // زيادة حجم الزر
-          textStyle: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold), // تغيير حجم الخط
+      padding: const EdgeInsets.all(8.0),
+      child: SizedBox(
+        width: 140, // حجم موحد
+        height: 55,  // حجم موحد
+        child: ElevatedButton(
+          onPressed: () => _openFilteredProductsPage(context, label),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF800080),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.zero, // إزالة البادينج الداخلي
+            textStyle: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)), // بيضاوي
+          ),
+          child: Text(label, style: const TextStyle(color: Colors.white)),
         ),
-        child: Text(label),
       ),
     );
   }
@@ -55,67 +56,76 @@ class MoreProductsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'اختر نوع المنتجات',
-          style: TextStyle(color: Color(0xFF6A5096)),  // تعيين لون النص إلى الذهبي
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 28,
+          ),
         ),
-        backgroundColor: Colors.green,
-        centerTitle: true,  // محاذاة النص في المنتصف
+        backgroundColor: const Color(0xFF800080),
+        centerTitle: true,
+        elevation: 0,
       ),
       body: GestureDetector(
         onHorizontalDragEnd: (details) {
-          // إذا كانت الحركة من اليسار إلى اليمين (drag من اليسار)
           if (details.primaryVelocity! > 0) {
             _goToHomePage(context);
           }
         },
-        child: BackgroundWidget(  // إضافة BackgroundWidget كخلفية
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // عرض الأزرار في منتصف الصفحة
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildFilterButton(context, 'خواتم'),
-                    _buildFilterButton(context, 'ذبل'),
-                    _buildFilterButton(context, 'سحبات'),
-                    _buildFilterButton(context, 'أساور'),
-                    _buildFilterButton(context, 'عقد'),
-                    _buildFilterButton(context, 'حلق'),
-                    _buildFilterButton(context, 'بيبي'),
-                    _buildFilterButton(context, 'تعاليق'),
-                    _buildFilterButton(context, 'تشكيلة'),
-                  ],
-                ),
-                SizedBox(height: 20.0),  // إضافة مساحة فارغة قبل الزر
-                ElevatedButton(
-                  onPressed: () => _goToCartPage(context),  // الذهاب إلى صفحة السلة
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,  // لون الزر الأخضر للسلة
-                    padding: EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
-                    textStyle: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
+        child: BackgroundWidget(
+          imageUrl: 'assets/bk.png',
+          child: SingleChildScrollView(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      _buildFilterButton(context, 'خواتم'),
+                      _buildFilterButton(context, 'ذبل'),
+                      _buildFilterButton(context, 'سحبات'),
+                      _buildFilterButton(context, 'أساور'),
+                      _buildFilterButton(context, 'عقد'),
+                      _buildFilterButton(context, 'حلق'),
+                      _buildFilterButton(context, 'بيبي'),
+                      _buildFilterButton(context, 'تعاليق'),
+                      _buildFilterButton(context, 'تشكيلة'),
+                    ],
                   ),
-                  child: const Text(
-                    'الذهاب إلى السلة',
-                    style: TextStyle(color: Color(0xFF6A5096)),
-                  ),
-                ),
-                SizedBox(height: 20.0),  // إضافة مساحة فارغة بعد الزر
-                ElevatedButton(
-                  onPressed: () => _goToHomePage(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,  // لون الزر الأخضر للعودة للصفحة الرئيسية
-                    padding: EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
-                    textStyle: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                  ),
-                  child: const Text(
-                    'العودة إلى الصفحة الرئيسية',
-                    style: TextStyle(color: Color(0xFF6A5096)),
-                  ),
-                ),
-              ],
+                  const SizedBox(height: 30.0),
+                  _buildButton(context, 'الذهاب إلى السلة', Icons.shopping_cart, () => _goToCartPage(context)),
+                  const SizedBox(height: 20.0),
+                  _buildButton(context, ' الصفحة الرئيسية', Icons.home, () => _goToHomePage(context)),
+                ],
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButton(BuildContext context, String label, IconData icon, VoidCallback onPressed) {
+    return SizedBox(
+      width: 220,
+      height: 55,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 25, color: Colors.white),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF800080),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         ),
       ),
     );

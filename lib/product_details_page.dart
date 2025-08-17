@@ -1,63 +1,84 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'cart_model.dart';
-import 'BackgroundWidget.dart'; // استيراد الويدجت الخاص بالخلفية
-import 'filtered_products_page.dart' ;
-
+import 'BackgroundWidget.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ProductDetailsPage extends StatelessWidget {
+  const ProductDetailsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final productDetails = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final productDetails =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     final productName = productDetails['name']!;
-    final productPrice = double.tryParse(productDetails['price'].toString()) ?? 0.0;
+    final productPrice =
+        double.tryParse(productDetails['price'].toString()) ?? 0.0;
     final productImage = productDetails['image']!;
     final productType = productDetails['type']!;
     final productWeight = productDetails['weight']!;
+
+    final String webImageUrl =
+        kIsWeb ? 'http://yourdomain.com/path/to/bk.png' : 'assets/bk.png';
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = screenWidth < 600;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'تفاصيل المنتج',
-          style: TextStyle(
-            color: Color(0xFF6A5096),  // تغيير لون النص إلى اللون الأصفر
-          ),
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color(0xFF800080),
         centerTitle: true,
       ),
       body: GestureDetector(
-        onHorizontalDragEnd: (DragEndDetails details) {
-          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-            // إذا كانت السحبة من اليسار إلى اليمين
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FilteredProductsPage(filterType: productType),
-              ),
-            );
+        onHorizontalDragEnd: (details) {
+          if (details.primaryVelocity! > 0) {
+            Navigator.pop(context);
           }
         },
         child: BackgroundWidget(
-          child: SingleChildScrollView(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FullScreenImagePage(imageUrl: productImage),
+          imageUrl: webImageUrl,
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    textDirection: TextDirection.rtl,
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: IntrinsicWidth(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildLabelValueRow('الأسم:', productName, '', isSmallScreen: isSmallScreen),
+                                  const SizedBox(height: 6),
+                                  _buildLabelValueRow('الوزن:', '$productWeight', 'غم', isSmallScreen: isSmallScreen),
+                                  const SizedBox(height: 6),
+                                  _buildLabelValueRow('السعر:', '$productPrice', 'دينار', isBoldValue: true, isSmallScreen: isSmallScreen),
+                                  const SizedBox(height: 6),
+                                ],
+                              ),
+                            ),
                           ),
-                        );
-                      },
-                      child: Container(
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Container(
+                        width: screenWidth * 0.4 > 240 ? 240 : screenWidth * 0.4,
+                        height: screenWidth * 0.4 > 240 ? 240 : screenWidth * 0.4,
                         decoration: BoxDecoration(
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
                               color: Colors.black26,
                               offset: Offset(0, 4),
@@ -68,140 +89,162 @@ class ProductDetailsPage extends StatelessWidget {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: Image.network(
-                            productImage,
-                            width: 250,
-                            height: 250,
-                            fit: BoxFit.cover,
+                          child: GestureDetector(
+                            onTap: () {
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) =>
+                              //         FullScreenImagePage(imageUrl: productImage),
+                              //   ),
+                              // );
+                            },
+                            child: Image.network(
+                              productImage,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      productName,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 9),
-                    Text(
-                      'السعر: د.أ ${productPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(height: 9),
-                    Text(
-                      'النوع: $productType',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(height: 9),
-                    Text(
-                      'الوزن: $productWeight',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<CartModel>().addToCart(productName, productPrice, productImage);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('تمت الإضافة إلى السلة')),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'إضافة إلى السلة',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/products');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'العودة إلى صفحة المنتجات',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/cart');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        'الذهاب إلى السلة',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildElevatedButton(
+                onPressed: () {
+                  context.read<CartModel>().addToCart(
+                        productName,
+                        productPrice,
+                        productImage,
+                        productType,
+                        productWeight,
+                      );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('تمت الإضافة إلى السلة')),
+                  );
+                },
+                label: 'إضافة للسلة',
+                isSmallScreen: isSmallScreen,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                label: 'المنتجات',
+                isSmallScreen: isSmallScreen,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/cart');
+                },
+                label: ' السلة',
+                isSmallScreen: isSmallScreen,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabelValueRow(
+      String label,
+      String value,
+      String unit, {
+        double fontSize = 20,
+        bool isBoldValue = false,
+        required bool isSmallScreen, // إضافة متغير الشاشة الصغيرة
+      }) {
+    return RichText(
+      textDirection: TextDirection.rtl,
+      textAlign: TextAlign.right,
+      text: TextSpan(
+        style: TextStyle(
+          // التعديل هنا ليكون حجم الخط متكيفًا
+          fontSize: isSmallScreen ? 16 : 20,
+          color: const Color(0xFF800080),
+        ),
+        children: <TextSpan>[
+          TextSpan(
+            text: '$label ',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(
+            text: value,
+            style: TextStyle(fontWeight: isBoldValue ? FontWeight.w600 : FontWeight.normal),
+          ),
+          if (unit.isNotEmpty)
+            TextSpan(
+              text: ' $unit',
+              style: TextStyle(fontWeight: isBoldValue ? FontWeight.w600 : FontWeight.normal),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildElevatedButton({
+    required VoidCallback onPressed,
+    required String label,
+    required bool isSmallScreen,
+  }) {
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF800080),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: isSmallScreen ? 13 : 18,
+            color: Colors.white,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }
+
 class FullScreenImagePage extends StatelessWidget {
   final String imageUrl;
 
-  FullScreenImagePage({required this.imageUrl});
+  const FullScreenImagePage({super.key, required this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('صورة المنتج',
-          style: TextStyle(color: Color(0xFF6A5096)),
+        title: const Text(
+          'صورة المنتج',
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: const Color(0xFF800080),
         centerTitle: true,
       ),
-      body: GestureDetector(
-        onHorizontalDragEnd: (DragEndDetails details) {
-          if (details.primaryVelocity != null && details.primaryVelocity! > 0) {
-            // إذا كانت السحبة من اليسار إلى اليمين
-            Navigator.pop(context);
-          }
-        },
-        child: Center(
-          child: InteractiveViewer(
-            child: Image.network(imageUrl),
-          ),
+      body: Center(
+        child: InteractiveViewer(
+          child: Image.network(imageUrl),
         ),
       ),
     );

@@ -1,4 +1,6 @@
 // order.dart
+import 'package:flutter/material.dart';
+
 class CustomOrder {
   String paymentMethod;
   String address;
@@ -9,6 +11,7 @@ class CustomOrder {
   List<Map<String, String>> cartItems;
   double totalPrice;
   String customerName;
+  String deviceId; // تم إضافة معرف الجهاز
 
   CustomOrder({
     required this.paymentMethod,
@@ -20,5 +23,6 @@ class CustomOrder {
     required this.cartItems,
     required this.totalPrice,
     required this.customerName,
+    required this.deviceId, // تم إضافة معرف الجهاز إلى المنشئ
   });
 }

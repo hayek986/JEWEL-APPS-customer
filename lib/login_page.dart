@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'ProductListPage.dart';  // تأكد من استيراد صفحة قائمة المنتجات
-import 'BackgroundWidget.dart'; // تأكد من استيراد BackgroundWidget هنا
+import 'ProductListPage.dart';
+import 'BackgroundWidget.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class LoginPage extends StatefulWidget {
   @override
@@ -10,23 +11,19 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>(); // للتحقق من صحة المدخلات
+  final _formKey = GlobalKey<FormState>();
 
-  // دالة للتحقق من المدخلات
   void _login() {
     if (_formKey.currentState!.validate()) {
       String username = _usernameController.text;
       String password = _passwordController.text;
 
-      // هنا يمكن إضافة الكود للتحقق من اسم المستخدم وكلمة المرور
       if (username == 'admin' && password == '1234') {
-        // إذا كان اسم المستخدم وكلمة المرور صحيحين، انتقل إلى صفحة قائمة المنتجات
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ProductListPage()),
         );
       } else {
-        // إذا كانت المدخلات غير صحيحة، عرض رسالة خطأ
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('اسم المستخدم أو كلمة المرور غير صحيحة')),
         );
@@ -36,43 +33,54 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onHorizontalDragUpdate: (details) {
-        if (details.primaryDelta! > 0) {
-          Navigator.pop(context); // This will handle the swipe to go back
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'تسجيل الدخول',
-            style: TextStyle(
-              color: Color(0xFF6A5096),  // تغيير لون النص إلى الأصفر
-            ),
+    // تحديد عنوان URL للصورة على الويب
+    final String webImageUrl =
+        kIsWeb ? 'http://yourdomain.com/path/to/bk.png' : 'assets/bk.png';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'تسجيل الدخول',
+          style: TextStyle(
+            color: Color(0xFF6A5096),
           ),
-          backgroundColor: Colors.green, // تغيير لون AppBar إلى الأخضر
-          centerTitle: true,  // محاذاة النص في المنتصف
-          elevation: 0, // إزالة الظل ليتماشى مع التصميم المسطح
         ),
-        body: BackgroundWidget( // إضافة BackgroundWidget هنا
-          child: SingleChildScrollView(
-            child: Padding(
+        backgroundColor: Colors.green,
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: BackgroundWidget(
+        imageUrl: webImageUrl,
+        child: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: 500), // تحديد أقصى عرض للويب
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch, // لجعل الأزرار تأخذ العرض الكامل
                   children: [
+                    Text(
+                      'أهلاً بك، قم بتسجيل الدخول',
+                      style: TextStyle(
+                        fontSize: kIsWeb ? 28 : 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6A5096),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 32),
                     TextFormField(
                       controller: _usernameController,
                       decoration: InputDecoration(
                         labelText: 'اسم المستخدم',
-                        labelStyle: TextStyle(color:Color(0xFF6A5096)), // تغيير لون النص إلى الأصفر
+                        labelStyle: TextStyle(color: Color(0xFF6A5096)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        prefixIcon: Icon(Icons.person, color: Colors.green), // تغيير لون الأيقونة
+                        prefixIcon: Icon(Icons.person, color: Colors.green),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -84,14 +92,14 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _passwordController,
-                      obscureText: true, // لإخفاء كلمة المرور
+                      obscureText: true,
                       decoration: InputDecoration(
                         labelText: 'كلمة المرور',
-                        labelStyle: TextStyle(color: Color(0xFF6A5096)), // تغيير لون النص إلى الأصفر
+                        labelStyle: TextStyle(color: Color(0xFF6A5096)),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        prefixIcon: Icon(Icons.lock, color: Colors.green), // تغيير لون الأيقونة
+                        prefixIcon: Icon(Icons.lock, color: Colors.green),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -104,26 +112,26 @@ class _LoginPageState extends State<LoginPage> {
                     ElevatedButton(
                       onPressed: _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green, // تغيير لون الخلفية إلى الأخضر
-                        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 32),
+                        backgroundColor: Colors.green,
+                        padding: EdgeInsets.symmetric(vertical: kIsWeb ? 20 : 14, horizontal: 32),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 5,
                       ),
-                      child: const Text(
+                      child: Text(
                         'تسجيل الدخول',
-                        style: TextStyle(fontSize: 18, color: Color(0xFF6A5096)), // تغيير لون النص إلى الأصفر
+                        style: TextStyle(fontSize: kIsWeb ? 20 : 18, color: Color(0xFF6A5096)),
                       ),
                     ),
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: () {
-                        // يمكن إضافة إجراءات أخرى هنا مثل "نسيت كلمة المرور؟"
+                        // هنا يمكن إضافة إجراءات أخرى مثل "نسيت كلمة المرور؟"
                       },
                       child: const Text(
                         'نسيت كلمة المرور؟',
-                        style: TextStyle(color: Color(0xFF6A5096)), // تغيير لون النص إلى الأخضر
+                        style: TextStyle(color: Color(0xFF6A5096)),
                       ),
                     ),
                   ],

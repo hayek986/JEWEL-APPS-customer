@@ -1,45 +1,59 @@
 import 'package:flutter/material.dart';
 
 class CartModel extends ChangeNotifier {
-  // قائمة لحفظ العناصر الموجودة في السلة؛ كل عنصر عبارة عن خريطة تحتوي على اسم المنتج وسعره.
   List<Map<String, dynamic>> _cartItems = [];
 
-  // دالة getter للحصول على العناصر الموجودة في السلة.
   List<Map<String, dynamic>> get cartItems => _cartItems;
 
-  // دالة لإضافة عنصر إلى السلة
-  void addToCart(String productName, double productPrice , String productImage) {
-    _cartItems.add({
-      'name': productName,
-      'price': productPrice, // تأكد من تمرير السعر كـ double
-      'image': productImage, // إضافة رابط الصورة
-
-
-    });
-    notifyListeners(); // إخطار الواجهة بالتغييرات
+  void addToCart(String productName, double productPrice, String productImage,
+      String productType, double productWeight) {
+    // تحقق إذا المنتج موجود بالفعل في السلة
+    int index = _cartItems.indexWhere((item) => item['name'] == productName);
+    if (index != -1) {
+      // زيادة الكمية فقط
+      _cartItems[index]['quantity'] += 1;
+    } else {
+      _cartItems.add({
+        'name': productName,
+        'price': productPrice,
+        'image': productImage,
+        'type': productType,
+        'weight': productWeight,
+        'quantity': 1,
+      });
+    }
+    notifyListeners();
   }
 
-  // دالة لحذف عنصر من السلة بناءً على الفهرس
   void removeItem(int index) {
-    _cartItems.removeAt(index);
-    notifyListeners(); // إخطار الواجهة بالتغييرات
+    if (index >= 0 && index < _cartItems.length) {
+      _cartItems.removeAt(index);
+      notifyListeners();
+    }
   }
 
-  // دالة لحساب السعر الإجمالي لكل العناصر الموجودة في السلة
+  void updateQuantity(int index, int quantity) {
+    if (index >= 0 && index < _cartItems.length) {
+      if (quantity > 0) {
+        _cartItems[index]['quantity'] = quantity;
+      } else {
+        // إزالة العنصر إذا الكمية صفر أو أقل
+        _cartItems.removeAt(index);
+      }
+      notifyListeners();
+    }
+  }
+
   double getTotalPrice() {
     double total = 0.0;
     for (var item in _cartItems) {
-      double price = item['price']; // تأكد من أن السعر هو نوع double
-      print('سعر المنتج: $price'); // طباعة لتتبع الأسعار
-      total += price; // إضافة السعر إلى الإجمالي
+      total += item['price'] * item['quantity'];
     }
-    print('الإجمالي: $total'); // طباعة للإجمالي
     return total;
   }
 
-  // دالة لإفراغ السلة
   void clearCart() {
     _cartItems.clear();
-    notifyListeners(); // إخطار الواجهة بالتغييرات
+    notifyListeners();
   }
 }

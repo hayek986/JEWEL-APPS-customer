@@ -1,93 +1,157 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'twilio_service.dart';
-import 'cart_model.dart';
-import 'order.dart'; // تم تغيير اسم الكلاس إلى CustomOrder
 import 'package:provider/provider.dart';
-import 'BackgroundWidget.dart'; // تأكد من استيراد BackgroundWidget هنا
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import 'cart_model.dart';
+import 'order.dart';
+import 'BackgroundWidget.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class PaymentPage extends StatefulWidget {
+  const PaymentPage({super.key});
+
   @override
   _PaymentPageState createState() => _PaymentPageState();
 }
 
 class _PaymentPageState extends State<PaymentPage> {
-  String selectedPaymentMethod = 'cash'; // Default payment method
-
+  String selectedPaymentMethod = 'cash';
   final TextEditingController addressController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController visaNumberController = TextEditingController();
   final TextEditingController visaExpiryController = TextEditingController();
   final TextEditingController visaCVCController = TextEditingController();
-  final TextEditingController customerNameController = TextEditingController(); // Customer name controller
+  final TextEditingController customerNameController = TextEditingController();
 
-  double dragStartX = 0.0;
+  String? _deviceId;
+  bool _loadingLocation = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceId();
+  }
+
+  Future<void> _loadDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    _deviceId = prefs.getString('deviceId');
+    if (_deviceId == null) {
+      _deviceId = const Uuid().v4();
+      await prefs.setString('deviceId', _deviceId!);
+    }
+    setState(() {});
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _loadingLocation = true);
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => _loadingLocation = false);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('خدمة تحديد الموقع غير مفعلة')),
+        );
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => _loadingLocation = false);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم رفض إذن الموقع')),
+          );
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => _loadingLocation = false);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('إذن الموقع مرفوض نهائياً')),
+        );
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+        String address =
+            "${place.street ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}";
+        setState(() {
+          addressController.text = address;
+        });
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('فشل في تحديد الموقع')),
+      );
+    } finally {
+      setState(() => _loadingLocation = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onHorizontalDragStart: (details) {
-        dragStartX = details.localPosition.dx;
-      },
-      onHorizontalDragEnd: (details) {
-        if (details.primaryVelocity! > 0) {
-          // إذا كان السحب من اليسار لليمين
-          Navigator.pop(context); // العودة للصفحة السابقة عند السحب
-        }
-      },
-      child: WillPopScope(
-        onWillPop: () async {
-          Navigator.pop(context); // العودة للصفحة السابقة عند الضغط على زر الرجوع
-          return false; // لا نقوم بإغلاق الصفحة مباشرةً
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            title: Center(  // توسيط النص في AppBar
-              child: Text(
-                'خيارات الدفع',
-                style: TextStyle(
-                  color:Color(0xFF6A5096), // تغيير لون النص إلى الأصفر
-                ),
-              ),
+    const String webImageUrl = 'assets/bk.png';
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Center(
+          child: Text(
+            'خيارات الدفع',
+            style: TextStyle(
+              color: Colors.white,
             ),
-            backgroundColor: Colors.green, // تغيير لون AppBar إلى الأخضر
-            elevation: 0,
           ),
-          body: BackgroundWidget(  // إضافة BackgroundWidget هنا
+        ),
+        backgroundColor: const Color(0xFF800080),
+        elevation: 0,
+      ),
+      body: BackgroundWidget(
+        imageUrl: webImageUrl,
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 600),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // عنوان القسم
                   Text(
                     'معلومات العميل',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: kIsWeb ? 20 : 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green, // تغيير اللون إلى الأخضر
+                      color: const Color(0xFF800080),
                     ),
                   ),
-                  SizedBox(height: 8),
-                  // اسم العميل
-                  TextField(
-                    controller: customerNameController,
-                    decoration: InputDecoration(
+                  const SizedBox(height: 8),
+                  _buildTextField(
+                      controller: customerNameController,
                       labelText: 'اسم العميل',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  // طريقة الدفع
+                      icon: Icons.person),
+                  const SizedBox(height: 16),
                   Text(
                     'طريقة الدفع',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: kIsWeb ? 20 : 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green, // تغيير اللون إلى الأخضر
+                      color: const Color(0xFF800080),
                     ),
                   ),
                   Row(
@@ -96,7 +160,13 @@ class _PaymentPageState extends State<PaymentPage> {
                         child: RadioListTile<String>(
                           value: 'cash',
                           groupValue: selectedPaymentMethod,
-                          title: Text('الدفع عند الاستلام'),
+                          title: Text(
+                            'الدفع عند الاستلام',
+                            style: TextStyle(
+                              fontSize: kIsWeb ? 16 : 14,
+                              color: const Color(0xFF800080),
+                            ),
+                          ),
                           onChanged: (value) {
                             setState(() {
                               selectedPaymentMethod = value!;
@@ -108,7 +178,13 @@ class _PaymentPageState extends State<PaymentPage> {
                         child: RadioListTile<String>(
                           value: 'visa',
                           groupValue: selectedPaymentMethod,
-                          title: Text('الدفع بواسطة فيزا'),
+                          title: Text(
+                            'الدفع بواسطة فيزا',
+                            style: TextStyle(
+                              fontSize: kIsWeb ? 16 : 14,
+                              color: const Color(0xFF800080),
+                            ),
+                          ),
                           onChanged: (value) {
                             setState(() {
                               selectedPaymentMethod = value!;
@@ -118,140 +194,148 @@ class _PaymentPageState extends State<PaymentPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 16),
-                  // العنوان ورقم الهاتف
-                  TextField(
-                    controller: addressController,
-                    decoration: InputDecoration(
-                      labelText: 'العنوان',
-                      prefixIcon: Icon(Icons.location_on),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: addressController,
+                          labelText: 'العنوان',
+                          icon: Icons.location_on,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: _loadingLocation
+                            ? const CircularProgressIndicator()
+                            : const Icon(Icons.my_location,
+                                color: Color(0xFF800080)),
+                        onPressed: _loadingLocation ? null : _getCurrentLocation,
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: phoneController,
-                    decoration: InputDecoration(
+                  const SizedBox(height: 16),
+                  _buildTextField(
+                      controller: phoneController,
                       labelText: 'رقم الهاتف',
-                      prefixIcon: Icon(Icons.phone),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  // فيزا المدفوعات
+                      icon: Icons.phone),
                   if (selectedPaymentMethod == 'visa') ...[
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: visaNumberController,
-                      decoration: InputDecoration(
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                        controller: visaNumberController,
                         labelText: 'رقم الفيزا',
-                        prefixIcon: Icon(Icons.credit_card),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: visaExpiryController,
-                      decoration: InputDecoration(
+                        icon: Icons.credit_card),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                        controller: visaExpiryController,
                         labelText: 'تاريخ انتهاء الفيزا',
-                        prefixIcon: Icon(Icons.date_range),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    TextField(
-                      controller: visaCVCController,
-                      decoration: InputDecoration(
+                        icon: Icons.date_range),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                        controller: visaCVCController,
                         labelText: 'CVC',
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      obscureText: true,
-                    ),
+                        icon: Icons.lock,
+                        obscureText: true),
                   ],
-                  SizedBox(height: 24),
-                  // زر إرسال الطلب
+                  const SizedBox(height: 24),
                   Center(
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        final cartItems = context.read<CartModel>().cartItems.map((item) {
-                          return {
-                            'name': item['name'] as String,
-                            'price': item['price'] as String,
-                          };
-                        }).toList();
-
-                        final order = CustomOrder(
-                          paymentMethod: selectedPaymentMethod,
-                          address: addressController.text,
-                          phone: phoneController.text,
-                          visaNumber: visaNumberController.text,
-                          visaExpiry: visaExpiryController.text,
-                          visaCVC: visaCVCController.text,
-                          cartItems: cartItems,
-                          totalPrice: context.read<CartModel>().getTotalPrice(),
-                          customerName: customerNameController.text.trim(),
-                        );
-
-                        if (order.customerName.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('يرجى إدخال اسم العميل')),
-                          );
-                          return;
-                        }
-
-                        // حفظ الطلب في Firestore
-                        FirebaseFirestore.instance.collection('orders').doc(order.customerName).set({
-                          'paymentMethod': order.paymentMethod,
-                          'address': order.address,
-                          'phone': order.phone,
-                          'visaNumber': order.visaNumber,
-                          'visaExpiry': order.visaExpiry,
-                          'visaCVC': order.visaCVC,
-                          'cartItems': order.cartItems,
-                          'totalPrice': order.totalPrice,
-                          'timestamp': FieldValue.serverTimestamp(),
-                        });
-
-                        // إرسال رسالة SMS
-                        TwilioService twilioService = TwilioService();
                         try {
-                          String productNames = order.cartItems.map((item) => item['name']).join(', ');
-                          await twilioService.sendSmsMessage(order.customerName, productNames, order.totalPrice);
+                          if (customerNameController.text.isEmpty ||
+                              addressController.text.isEmpty ||
+                              phoneController.text.isEmpty) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('يرجى ملء جميع الحقول المطلوبة')),
+                            );
+                            return;
+                          }
+
+                          final cartItems =
+                              context.read<CartModel>().cartItems.map((item) {
+                            return {
+                              'name': item['name'] as String,
+                              'price': item['price'].toString(),
+                              'imageUrl': item['image'] as String,
+                              'type': item['type'] as String,
+                              'weight': item['weight'].toString(),
+                            };
+                          }).toList();
+
+                          if (cartItems.isEmpty) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('لا يوجد منتجات في سلة التسوق')),
+                            );
+                            return;
+                          }
+
+                          if (_deviceId == null) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('خطأ في جلب معرف الجهاز')),
+                            );
+                            return;
+                          }
+
+                          final order = CustomOrder(
+                            paymentMethod: selectedPaymentMethod,
+                            address: addressController.text,
+                            phone: phoneController.text,
+                            visaNumber: visaNumberController.text,
+                            visaExpiry: visaExpiryController.text,
+                            visaCVC: visaCVCController.text,
+                            cartItems: cartItems,
+                            totalPrice: context.read<CartModel>().getTotalPrice(),
+                            customerName: customerNameController.text.trim(),
+                            deviceId: _deviceId!,
+                          );
+
+                          await FirebaseFirestore.instance.collection('orders').add({
+                            'isNew': true,
+                            'timestamp': FieldValue.serverTimestamp(),
+                            'deviceId': order.deviceId,
+                            'paymentMethod': order.paymentMethod,
+                            'address': order.address,
+                            'phone': order.phone,
+                            'visaNumber': order.visaNumber,
+                            'visaExpiry': order.visaExpiry,
+                            'visaCVC': order.visaCVC,
+                            'cartItems': order.cartItems,
+                            'totalPrice': order.totalPrice,
+                            'customerName': order.customerName,
+                          });
+
+                          if (!context.mounted) return;
+                          context.read<CartModel>().clearCart();
+                          Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('تم إرسال رسالة بنجاح')),
+                            const SnackBar(content: Text('تمت معالجة الطلب بنجاح')),
                           );
                         } catch (e) {
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('فشل في إرسال رسالة: $e')),
+                            const SnackBar(
+                                content: Text('فشل في إرسال الطلب. يرجى المحاولة مرة أخرى.')),
                           );
                         }
-
-                        // مسح السلة
-                        context.read<CartModel>().clearCart();
-
-                        // رسالة تأكيد
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('تمت معالجة الطلب بنجاح')),
-                        );
                       },
-                      icon: Icon(Icons.send, color: Colors.white),
+                      icon: const Icon(Icons.send, color: Colors.white),
                       label: Text(
                         'إرسال الطلب',
-                        style: TextStyle(color: Color(0xFF6A5096)),  // تغيير لون النص إلى اللون المطلوب
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: kIsWeb ? 18 : 16),
                       ),
                       style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                        backgroundColor: Colors.green, // تعيين اللون الأخضر
+                        padding: EdgeInsets.symmetric(
+                            vertical: kIsWeb ? 20 : 16,
+                            horizontal: kIsWeb ? 40 : 32),
+                        backgroundColor: const Color(0xFF800080),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
@@ -264,6 +348,35 @@ class _PaymentPageState extends State<PaymentPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String labelText,
+    required IconData icon,
+    bool obscureText = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      decoration: InputDecoration(
+        labelText: labelText,
+        prefixIcon: Icon(icon, color: const Color(0xFF800080)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        labelStyle: const TextStyle(color: Color(0xFF800080)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF800080)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF800080)),
+        ),
+      ),
+      style: const TextStyle(color: Color(0xFF800080)),
     );
   }
 }
