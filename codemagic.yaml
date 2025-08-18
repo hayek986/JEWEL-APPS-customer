@@ -13,7 +13,7 @@ workflows:
         flutter pub get
       - |
         echo "Building for iOS simulator..."
-        flutter build ios --release --simulator
+        flutter build ios --simulator
     
     artifacts:
       - build/ios/simulator/*.app
