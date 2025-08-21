@@ -8,7 +8,7 @@ workflows:
       - flutter pub get
       - flutter build ios --simulator --no-codesign
     artifacts:
-      - build/ios/simulator/*.app
+      - build/ios/**/*.app  # <-- هذا هو التعديل الرئيسي
     publishing:
       email:
         recipients:
