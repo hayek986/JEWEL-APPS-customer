@@ -1,5 +1,5 @@
 workflows:
-  # === سير العمل القديم (للمقارنة) ===
+  # === سير عمل بناء نسخة المحاكي (للتأكد أن البناء سليم) ===
   simulator-build:
     name: Simulator Build
     environment:
@@ -11,16 +11,20 @@ workflows:
     artifacts:
       - build/ios/**/*.app
 
-  # === سير العمل الجديد مع خطوة البحث (Debug) ===
-  build-ios-unsigned-ipa:
-    name: Build Unsigned iOS IPA
+  # === سير العمل الجديد والصحيح لبناء ملف IPA ===
+  build-ios-ipa:
+    name: Build iOS IPA
     environment:
       flutter: stable
       xcode: latest
     scripts:
       - flutter pub get
       - flutter build ipa --release --no-codesign
-      - echo "Searching for the generated .ipa file..."
-      - find $CM_BUILD_DIR -name "*.ipa" # <-- هذه هي الخطوة الجديدة
+      - |
+        echo "Exporting the .ipa file from the archive..."
+        xcodebuild -exportArchive \
+          -archivePath build/ios/archive/Runner.xcarchive \
+          -exportPath build/ios/ipa \
+          -exportOptionsPlist $CM_BUILD_DIR/ios/ExportOptions.plist
     artifacts:
       - build/ios/ipa/*.ipa
