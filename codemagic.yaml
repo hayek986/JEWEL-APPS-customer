@@ -1,6 +1,6 @@
 workflows:
   build-and-upload-ipa:
-    name: Build and Upload IPA (Transfer.sh)
+    name: Build and Upload IPA (Final Correct Path)
     environment:
       flutter: stable
       xcode: latest
@@ -17,16 +17,12 @@ workflows:
         cp -r build/ios/iphoneos/Runner.app build/ios/Payload/
         cd build/ios
         zip -r ../../../newhayekjewel.ipa Payload
-        cd ../..
+        cd ../.. # العودة للمجلد الرئيسي
       - |
-        # الخطوة 3: رفع الملف إلى خدمة خارجية وطباعة الرابط
+        # الخطوة 3: رفع الملف من المسار الصحيح
         echo "Uploading to Transfer.sh..."
         DOWNLOAD_URL=$(curl --upload-file ./newhayekjewel.ipa https://transfer.sh/newhayekjewel.ipa )
-        echo "===================================================================="
         echo "===================================================================="
         echo "DOWNLOAD YOUR IPA FILE FROM THIS LINK:"
         echo $DOWNLOAD_URL
         echo "===================================================================="
-        echo "===================================================================="
-    artifacts:
-      - ./*.ipa # سنبقيه كاحتياط
