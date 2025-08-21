@@ -1,23 +1,14 @@
-# Start of Codemagic YAML file
-
 workflows:
   simulator-build:
     name: Simulator Build
     environment:
       flutter: stable
       xcode: latest
-    
     scripts:
-      - |
-        echo "Installing Flutter dependencies..."
-        flutter pub get
-      - |
-        echo "Building for iOS simulator..."
-        flutter build ios --simulator
-    
+      - flutter pub get
+      - flutter build ios --simulator --no-codesign
     artifacts:
       - build/ios/simulator/*.app
-    
     publishing:
       email:
         recipients:
