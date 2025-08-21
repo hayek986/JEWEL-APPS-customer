@@ -1,32 +1,44 @@
-# Start of Codemagic YAML file
+name: newhayekjewel
+description: "A new Flutter project."
+publish_to: 'none'
 
-workflows:
-  simulator-build:
-    name: Simulator Build
-    environment:
-      flutter: stable
-      xcode: latest
-    
-    scripts:
-      - |
-        echo "Installing Flutter dependencies..."
-        flutter pub get
-      - |
-        echo "Running pod install..."
-        cd ios
-        pod install --repo-update
-        cd ..
-      - |
-        echo "Building for iOS simulator..."
-        flutter build ios --simulator
-    
-    artifacts:
-      - build/ios/simulator/*.app
-    
-    publishing:
-      email:
-        recipients:
-          - eng.alhayek@icloud.com
-        notify:
-          success: true
-          failure: true
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons:
+  firebase_core:
+  firebase_messaging:
+  cloud_firestore:
+  cloud_functions:
+  provider:
+  http:
+  html:
+  firebase_storage:
+  image_picker:
+  marquee:
+  photo_view:
+  cached_network_image:
+  shared_preferences:
+  flutter_dotenv:
+  carousel_slider: ^4.2.1
+  flutter_local_notifications: ^17.1.2
+  uuid: ^4.4.0
+  firebase_auth: ^4.19.4
+  geolocator: ^11.0.0
+  geocoding: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints:
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo.png
+    - assets/bk.png
