@@ -5,40 +5,50 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0' # من الأفضل رفع الحد الأدنى قليلاً ليتوافق مع الحزم الحديثة
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons:
-  firebase_core:
-  firebase_messaging:
-  cloud_firestore:
-  cloud_functions:
-  provider:
-  http:
-  html:
-  firebase_storage:
-  image_picker:
-  marquee:
-  photo_view:
-  cached_network_image:
-  shared_preferences:
-  flutter_dotenv:
+
+  # === حزم Firebase (مهم تحديثها معًا) ===
+  firebase_core: ^3.1.0
+  firebase_auth: ^5.1.0
+  firebase_messaging: ^15.0.1
+  cloud_firestore: ^5.0.1
+  cloud_functions: ^5.0.1
+  firebase_storage: ^12.1.0
+
+  # === حزم تحديد الموقع (سبب المشكلة الرئيسي) ===
+  geolocator: ^12.0.0 # هذا هو التحديث الأهم لحل خطأ Xcode
+  geocoding: ^3.0.0
+
+  # === حزم أخرى (مع تحديد إصدارات مستقرة) ===
+  provider: ^6.1.2
+  http: ^1.2.1
+  cached_network_image: ^3.3.1
+  shared_preferences: ^2.2.3
   carousel_slider: ^4.2.1
-  flutter_local_notifications: ^17.1.2
+  flutter_local_notifications: ^17.2.1
+  image_picker: ^1.1.2
+  photo_view: ^0.15.0
+  
+  # === حزم أقل أهمية للتثبيت الآن ===
+  cupertino_icons: ^1.0.8
+  marquee: ^2.2.3
+  html: ^0.15.4
   uuid: ^4.4.0
-  firebase_auth: ^4.19.4
-  geolocator: ^11.0.0
-  geocoding: ^2.2.2
+  flutter_dotenv: ^5.1.0
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints:
+  flutter_lints: ^4.0.0 # تحديث بسيط
 
 flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
     - assets/bk.png
+    # - .env # تأكد من أنك لا تزال بحاجة لهذا السطر إذا كنت تستخدم flutter_dotenv
