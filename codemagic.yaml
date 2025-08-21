@@ -1,6 +1,6 @@
 workflows:
-  build-manual-ipa:
-    name: Build Manual IPA (Final Method)
+  build-and-upload-ipa:
+    name: Build and Upload IPA (Transfer.sh)
     environment:
       flutter: stable
       xcode: latest
@@ -13,16 +13,20 @@ workflows:
       - |
         # الخطوة 2: إنشاء ملف .ipa يدويًا
         echo "Creating IPA manually..."
-        # إنشاء مجلد مؤقت لملف IPA
-        mkdir -p build/ios/ipa
-        # إنشاء مجلد Payload
         mkdir -p build/ios/Payload
-        # نسخ ملف .app إلى داخل Payload
         cp -r build/ios/iphoneos/Runner.app build/ios/Payload/
-        # ضغط مجلد Payload لإنشاء ملف IPA
         cd build/ios
         zip -r ../../../newhayekjewel.ipa Payload
-        # العودة للمجلد الأصلي (اختياري)
         cd ../..
+      - |
+        # الخطوة 3: رفع الملف إلى خدمة خارجية وطباعة الرابط
+        echo "Uploading to Transfer.sh..."
+        DOWNLOAD_URL=$(curl --upload-file ./newhayekjewel.ipa https://transfer.sh/newhayekjewel.ipa )
+        echo "===================================================================="
+        echo "===================================================================="
+        echo "DOWNLOAD YOUR IPA FILE FROM THIS LINK:"
+        echo $DOWNLOAD_URL
+        echo "===================================================================="
+        echo "===================================================================="
     artifacts:
-      - ./*.ipa # البحث عن أي ملف .ipa في المجلد الرئيسي
+      - ./*.ipa # سنبقيه كاحتياط
