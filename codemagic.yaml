@@ -1,4 +1,5 @@
 workflows:
+  # === سير العمل القديم لبناء نسخة المحاكي (للتأكد أن البناء سليم) ===
   simulator-build:
     name: Simulator Build
     environment:
@@ -8,11 +9,16 @@ workflows:
       - flutter pub get
       - flutter build ios --simulator --no-codesign
     artifacts:
-      - build/ios/**/*.app  # <-- هذا هو التعديل الرئيسي
-    publishing:
-      email:
-        recipients:
-          - your-email@example.com
-        notify:
-          success: true
-          failure: false
+      - build/ios/**/*.app
+
+  # === سير العمل الجديد لبناء ملف IPA خام (الذي سنستخدمه الآن) ===
+  build-ios-unsigned-ipa:
+    name: Build Unsigned iOS IPA
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - flutter pub get
+      - flutter build ipa --release --no-codesign
+    artifacts:
+      - build/ios/ipa/*.ipa
