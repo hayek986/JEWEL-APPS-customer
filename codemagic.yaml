@@ -1,19 +1,28 @@
 workflows:
-  build-ios-ipa:
-    name: Build iOS IPA for Sideloading
+  build-manual-ipa:
+    name: Build Manual IPA (Final Method)
     environment:
       flutter: stable
       xcode: latest
     scripts:
       - flutter pub get
       - |
-        # بناء الأرشيف أولاً
-        flutter build ipa --release --no-codesign
+        # الخطوة 1: بناء ملف .app العادي
+        echo "Building .app file..."
+        flutter build ios --release --no-codesign
       - |
-        # تصدير الأرشيف إلى ملف IPA
-        xcodebuild -exportArchive \
-          -archivePath build/ios/archive/Runner.xcarchive \
-          -exportPath build/ios/ipa \
-          -exportOptionsPlist $CM_BUILD_DIR/ios/ExportOptions.plist
+        # الخطوة 2: إنشاء ملف .ipa يدويًا
+        echo "Creating IPA manually..."
+        # إنشاء مجلد مؤقت لملف IPA
+        mkdir -p build/ios/ipa
+        # إنشاء مجلد Payload
+        mkdir -p build/ios/Payload
+        # نسخ ملف .app إلى داخل Payload
+        cp -r build/ios/iphoneos/Runner.app build/ios/Payload/
+        # ضغط مجلد Payload لإنشاء ملف IPA
+        cd build/ios
+        zip -r ../../../newhayekjewel.ipa Payload
+        # العودة للمجلد الأصلي (اختياري)
+        cd ../..
     artifacts:
-      - build/ios/ipa/*.ipa
+      - ./*.ipa # البحث عن أي ملف .ipa في المجلد الرئيسي
