@@ -18,13 +18,5 @@ workflows:
         mv Runner.app Payload/
         zip -r ../../../newhayekjewel.ipa Payload/
         cd ../../..
-      - |
-        # Step 3: Upload the IPA file from the correct path
-        echo "Uploading to Transfer.sh..."
-        DOWNLOAD_URL=$(curl --upload-file ./newhayekjewel.ipa https://transfer.sh/newhayekjewel.ipa)
-        echo "===================================================================="
-        echo "DOWNLOAD YOUR IPA FILE FROM THIS LINK:"
-        echo $DOWNLOAD_URL
-        echo "===================================================================="
     artifacts:
-      - ./*.ipa # Keep as a fallback
+      - newhayekjewel.ipa # This will save the IPA file to the Artifacts section
