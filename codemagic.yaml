@@ -11,17 +11,16 @@ workflows:
         echo "Building .app file..."
         flutter build ios --release --no-codesign
       - |
-        # Step 2: Create the .ipa file manually
+        # Step 2: Create the .ipa file manually in the root directory
         echo "Creating IPA manually..."
-        mkdir -p build/ios/Payload
-        cp -r build/ios/iphoneos/Runner.app build/ios/Payload/
-        cd build/ios
-        zip -r ../../../newhayekjewel.ipa Payload
-        cd ../.. # Return to the root build directory
+        cd build/ios/iphoneos/
+        mkdir Payload
+        mv Runner.app Payload/
+        zip -r ../../../newhayekjewel.ipa Payload/
+        cd ../../..
       - |
         # Step 3: Upload the IPA file from the correct path
         echo "Uploading to Transfer.sh..."
-        # Ensure we are in the root build directory where the IPA was created
         DOWNLOAD_URL=$(curl --upload-file ./newhayekjewel.ipa https://transfer.sh/newhayekjewel.ipa)
         echo "===================================================================="
         echo "DOWNLOAD YOUR IPA FILE FROM THIS LINK:"
