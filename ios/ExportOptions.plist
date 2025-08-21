@@ -3,17 +3,19 @@
 <plist version="1.0">
 <dict>
     <key>method</key>
-    <string>ad-hoc</string>
+    <string>development</string>
     <key>signingStyle</key>
     <string>manual</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>teamID</key>
+    <string>0000000000</string> 
     <key>provisioningProfiles</key>
     <dict>
-        <key>com.example.hayekjewel</key> 
+        <key>com.example.hayekjewel</key>
         <string></string>
     </dict>
     <key>signingCertificate</key>
-    <string></string>
-    <key>teamID</key>
-    <string></string>
+    <string>Apple Development</string>
 </dict>
 </plist>

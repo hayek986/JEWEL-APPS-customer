@@ -1,27 +1,16 @@
 workflows:
-  # === سير عمل بناء نسخة المحاكي (للتأكد أن البناء سليم) ===
-  simulator-build:
-    name: Simulator Build
-    environment:
-      flutter: stable
-      xcode: latest
-    scripts:
-      - flutter pub get
-      - flutter build ios --simulator --no-codesign
-    artifacts:
-      - build/ios/**/*.app
-
-  # === سير العمل الجديد والصحيح لبناء ملف IPA ===
   build-ios-ipa:
-    name: Build iOS IPA
+    name: Build iOS IPA for Sideloading
     environment:
       flutter: stable
       xcode: latest
     scripts:
       - flutter pub get
-      - flutter build ipa --release --no-codesign
       - |
-        echo "Exporting the .ipa file from the archive..."
+        # بناء الأرشيف أولاً
+        flutter build ipa --release --no-codesign
+      - |
+        # تصدير الأرشيف إلى ملف IPA
         xcodebuild -exportArchive \
           -archivePath build/ios/archive/Runner.xcarchive \
           -exportPath build/ios/ipa \
